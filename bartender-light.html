@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Bartender's Guide — Est. 1998</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f0ea;
+    --surface: #ffffff;
+    --surface-2: #faf7f3;
+    --amber: #b07830;
+    --amber-dim: #c8943a;
+    --amber-faint: rgba(160,100,30,0.08);
+    --amber-border: rgba(160,110,40,0.18);
+    --text: #2a1f10;
+    --text-dim: #6b4e28;
+    --text-muted: #9a7a50;
+    --text-ghost: #c8a878;
+    --sidebar-bg: #fdf9f4;
+    --header-bg: #ffffff;
+  }
+
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Comic Sans MS', 'Comic Sans', cursive; overflow: hidden; }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(200,150,60,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(180,120,40,0.04) 0%, transparent 50%);
+  }
+
+  /* LAYOUT */
+  #app { position: relative; z-index: 1; display: flex; flex-direction: column; height: 100vh; }
+
+  header {
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 15px 28px;
+    background: var(--header-bg);
+    border-bottom: 1px solid var(--amber-border);
+    box-shadow: 0 1px 4px rgba(100,60,10,0.06);
+  }
+
+  .header-left { display: flex; align-items: baseline; gap: 14px; }
+  .header-est { font-size: 10px; letter-spacing: 0.38em; color: #b89060; text-transform: uppercase; }
+  .header-title { font-size: 26px; font-weight: normal; color: var(--amber); letter-spacing: 0.06em; }
+
+  .header-right { display: flex; align-items: center; gap: 18px; }
+  #surprise-btn {
+    background: rgba(160,100,30,0.08); border: 1px solid rgba(160,100,30,0.22);
+    color: var(--amber); padding: 6px 14px; border-radius: 4px; cursor: pointer;
+    font-size: 11px; font-family: inherit; letter-spacing: 0.12em; text-transform: uppercase;
+    transition: filter 0.15s, background 0.15s;
+  }
+  #surprise-btn:hover { background: rgba(160,100,30,0.14); filter: brightness(0.9); }
+  #clock { font-size: 12px; color: #b89060; font-variant-numeric: tabular-nums; letter-spacing: 0.1em; }
+
+  .body-wrap { display: flex; flex: 1; overflow: hidden; }
+
+  /* SIDEBAR */
+  aside {
+    width: 212px; flex-shrink: 0;
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--amber-border);
+    display: flex; flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .search-wrap { padding: 16px 13px 10px; }
+  #search {
+    width: 100%;
+    background: #fff; border: 1px solid rgba(160,110,40,0.22);
+    border-radius: 3px; padding: 7px 10px;
+    color: var(--text-dim); font-size: 12px; font-family: inherit; outline: none;
+    transition: border-color 0.2s;
+  }
+  #search:focus { border-color: rgba(160,100,30,0.45); }
+  #search::placeholder { color: #c8a878; }
+
+  .cat-label { padding: 2px 13px 7px; font-size: 8.5px; letter-spacing: 0.42em; color: #c0a070; text-transform: uppercase; }
+
+  .cat-btn {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 15px; width: 100%;
+    background: transparent; border: none; border-left: 2px solid transparent;
+    color: var(--text-muted); cursor: pointer;
+    font-size: 12px; font-family: inherit; text-align: left;
+    transition: all 0.18s;
+  }
+  .cat-btn:hover { background: rgba(160,100,30,0.05); color: var(--text-dim); }
+  .cat-btn.active { background: rgba(160,100,30,0.09); color: var(--amber); }
+  .cat-btn-inner { display: flex; align-items: center; gap: 9px; }
+  .cat-emoji { font-size: 15px; }
+  .cat-count { font-size: 10px; color: #c8a878; }
+  .cat-btn.active .cat-count { color: #b07830; }
+
+  .sidebar-footer { margin-top: auto; padding: 15px 13px; border-top: 1px solid var(--amber-border); }
+  .sidebar-footer p { font-size: 10px; color: #c0a070; line-height: 1.7; letter-spacing: 0.03em; }
+
+  /* MAIN */
+  main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  #list-section {
+    padding: 17px 22px 14px;
+    border-bottom: 1px solid rgba(160,110,40,0.1);
+    overflow-y: auto;
+    transition: max-height 0.3s ease;
+  }
+  #list-section.has-detail { max-height: 44%; }
+  #list-section.no-detail { max-height: 100%; }
+
+  .list-heading { margin-bottom: 11px; font-size: 10px; letter-spacing: 0.4em; color: #c8a878; text-transform: uppercase; font-weight: normal; font-family: inherit; }
+
+  #drink-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(172px, 1fr)); gap: 5px; }
+
+  .drink-btn {
+    display: flex; align-items: center; gap: 8px; padding: 7px 9px;
+    background: #fff; border: 1px solid rgba(160,110,40,0.14);
+    border-radius: 4px; color: var(--text-muted); cursor: pointer;
+    font-size: 12px; font-family: inherit; text-align: left;
+    transition: all 0.15s; animation: fadeIn 0.22s ease both;
+    box-shadow: 0 1px 2px rgba(100,60,10,0.04);
+  }
+  .drink-btn:hover { border-color: rgba(160,100,30,0.3); color: var(--text-dim); box-shadow: 0 2px 6px rgba(100,60,10,0.08); }
+  .drink-btn.selected { background: rgba(160,100,30,0.07); border-color: rgba(160,100,30,0.3); color: var(--amber); }
+  .drink-btn .glass-icon { color: #d0b080; flex-shrink: 0; }
+  .drink-btn.selected .glass-icon { color: var(--amber); }
+  .drink-btn span.name { line-height: 1.3; }
+
+  /* DETAIL */
+  #detail-section {
+    flex: 1; padding: 22px 28px 34px; overflow-y: auto;
+    background: linear-gradient(180deg, rgba(250,245,238,0.8) 0%, transparent 100%);
+    opacity: 1; transform: translateY(0); transition: opacity 0.25s, transform 0.25s;
+  }
+  #detail-section.animating { opacity: 0; transform: translateY(5px); }
+
+  #empty-state {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    color: #d0b888; font-size: 13px; font-style: italic; letter-spacing: 0.06em;
+  }
+
+  .divider { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .divider-line { height: 1px; flex: 1; }
+  .divider-line.left { background: linear-gradient(90deg, transparent, rgba(160,100,30,0.25)); }
+  .divider-line.right { background: linear-gradient(90deg, rgba(160,100,30,0.25), transparent); }
+  .divider-gem { color: #c8a060; font-size: 15px; }
+
+  .detail-inner { display: flex; gap: 30px; flex-wrap: wrap; }
+  .detail-glass { flex-shrink: 0; color: #b07830; filter: drop-shadow(0 2px 6px rgba(150,100,20,0.15)); padding-top: 2px; }
+
+  .detail-body { flex: 1; min-width: 200px; }
+  .detail-name { font-size: 28px; font-weight: normal; color: #8a5820; letter-spacing: 0.04em; margin-bottom: 3px; }
+  .detail-cat { font-size: 9px; letter-spacing: 0.34em; color: #c0a070; text-transform: uppercase; margin-bottom: 16px; }
+
+  .detail-cols { display: flex; gap: 34px; flex-wrap: wrap; }
+
+  .detail-col h3 { margin-bottom: 8px; font-size: 8.5px; letter-spacing: 0.44em; color: #b09060; text-transform: uppercase; font-weight: normal; }
+  .ingredients { min-width: 170px; }
+  .ingredients ul { list-style: none; }
+  .ingredients li { display: flex; align-items: flex-start; gap: 7px; padding: 3.5px 0; font-size: 13px; color: var(--text-dim); border-bottom: 1px solid rgba(160,110,40,0.1); }
+  .ingredients li:last-child { border-bottom: none; }
+  .ing-dot { color: #d0a060; font-size: 8px; margin-top: 4px; flex-shrink: 0; }
+
+  .instructions { max-width: 340px; flex: 1; }
+  .instructions p { font-size: 14px; color: var(--text-muted); line-height: 1.8; font-style: italic; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #d8c0a0; border-radius: 2px; }
+  * { scrollbar-width: thin; scrollbar-color: #d8c0a0 transparent; }
+
+  @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="header-left">
+      <span class="header-est">Est. 1998</span>
+      <h1 class="header-title">The Bartender's Guide</h1>
+    </div>
+    <div class="header-right">
+      <button id="surprise-btn">Surprise Me</button>
+      <span id="clock"></span>
+    </div>
+  </header>
+
+  <div class="body-wrap">
+    <aside id="sidebar">
+      <div class="search-wrap">
+        <input type="text" id="search" placeholder="Search all recipes…" autocomplete="off">
+      </div>
+      <div class="cat-label">Categories</div>
+      <div id="cat-list"></div>
+      <div class="sidebar-footer">
+        <p id="recipe-count"></p>
+      </div>
+    </aside>
+
+    <main>
+      <div id="list-section" class="no-detail">
+        <div class="list-heading" id="list-heading"></div>
+        <div id="drink-grid"></div>
+      </div>
+      <div id="detail-section" style="display:none"></div>
+      <div id="empty-state">Select a drink above, or try "Surprise Me"</div>
+    </main>
+  </div>
+</div>
+
+<script>
+const DRINKS = {
+  shots: {
+    label: "Shots & Shooters", emoji: "🥃", color: "#c0392b",
+    items: [
+      { name: "Alabama Slammer", ingredients: ["0.5 oz Southern Comfort","0.5 oz Amaretto","0.5 oz Sloe Gin","Splash Orange Juice"], instructions: "Shake with ice, strain into shot glass.", glass: "shot" },
+      { name: "Antifreeze", ingredients: ["1 oz Vodka","0.5 oz Blue Curaçao","0.5 oz Midori"], instructions: "Shake with ice, strain into shot glass. The green color gives it its name.", glass: "shot" },
+      { name: "Bald Women", ingredients: ["0.5 oz Peach Schnapps","0.5 oz Vodka","Splash Grenadine"], instructions: "Combine in shot glass. Serve chilled.", glass: "shot" },
+      { name: "Berkley", ingredients: ["0.5 oz Rum","0.5 oz Apricot Brandy","Splash Lemon Juice","Dash Grenadine"], instructions: "Shake with ice, strain into shot glass.", glass: "shot" },
+      { name: "Bimbo", ingredients: ["0.5 oz Vodka","0.5 oz Peach Schnapps","Splash Cranberry Juice","Splash OJ"], instructions: "Shake with ice, strain. Pink and deceptively sweet.", glass: "shot" },
+      { name: "Blow Job", ingredients: ["0.5 oz Kahlúa","0.5 oz Baileys Irish Cream","Whipped Cream on top"], instructions: "Layer Kahlúa, then Baileys. Top with whipped cream. No hands allowed.", glass: "shot" },
+      { name: "Boilermaker", ingredients: ["1.5 oz Whiskey","1 glass Beer"], instructions: "Drop whiskey shot into beer glass, or drink separately.", glass: "shot" },
+      { name: "Boom", ingredients: ["0.5 oz Vodka","0.5 oz Gin","0.5 oz Rum","Splash Sour Mix"], instructions: "Shake with ice, strain into shot glass. It lives up to its name.", glass: "shot" },
+      { name: "Brain Eraser", ingredients: ["0.5 oz Vodka","0.5 oz Kahlúa","Splash Club Soda"], instructions: "Build in shot glass. Slam it fast through a straw.", glass: "shot" },
+      { name: "Bubble Gum", ingredients: ["0.5 oz Vodka","0.5 oz Peach Schnapps","0.5 oz Banana Liqueur","Splash Grenadine"], instructions: "Shake with ice, strain. Should taste like bubble gum.", glass: "shot" },
+      { name: "Buffalo Sweat", ingredients: ["1 oz Bourbon","Dash Tabasco"], instructions: "Combine in shot glass. Not for the faint of heart.", glass: "shot" },
+      { name: "Buttery Nipple", ingredients: ["0.5 oz Butterscotch Schnapps","0.5 oz Baileys Irish Cream"], instructions: "Layer Baileys over butterscotch schnapps.", glass: "shot" },
+      { name: "Buzzard", ingredients: ["0.5 oz Vodka","0.5 oz Rum","0.5 oz Tequila"], instructions: "Combine in shot glass. Knock back quickly.", glass: "shot" },
+      { name: "Cocaine Shooter", ingredients: ["0.5 oz Rum","0.5 oz Yukon Jack","Splash Lime Juice","Dash Tabasco"], instructions: "Shake with ice, strain into shot glass.", glass: "shot" },
+      { name: "Cool-Aid", ingredients: ["0.5 oz Vodka","0.5 oz Amaretto","Splash Cranberry Juice"], instructions: "Shake with ice, strain into shot glass.", glass: "shot" },
+      { name: "Cordless Screwdriver", ingredients: ["1 oz Vodka","Orange wedge dipped in sugar"], instructions: "Slam the vodka, then eat the sugared orange.", glass: "shot" },
+      { name: "Cough Syrup", ingredients: ["0.5 oz Blackberry Brandy","0.5 oz Peppermint Schnapps"], instructions: "Combine in shot glass. Tastes disturbingly like medicine.", glass: "shot" },
+      { name: "Dr. Pepper", ingredients: ["0.5 oz Amaretto","0.5 oz Beer (drop shot)"], instructions: "Drop amaretto shot into half glass of beer. Drink fast.", glass: "shot" },
+      { name: "Eskimo", ingredients: ["0.5 oz Vodka","0.5 oz Crème de Menthe","0.5 oz White Crème de Cacao"], instructions: "Shake with ice, strain. Cold and cooling.", glass: "shot" },
+      { name: "Fireball", ingredients: ["1 oz Cinnamon Whiskey","Dash Hot Sauce"], instructions: "Chill the cinnamon whiskey, add a dash of hot sauce. Fire in a glass.", glass: "shot" },
+      { name: "Fire Dragon", ingredients: ["0.5 oz Goldschläger","0.5 oz Bacardi 151 (floated)"], instructions: "Pour Goldschläger, float 151 on top. Optional: ignite briefly before shooting.", glass: "shot" },
+      { name: "Fourth of July", ingredients: ["0.33 oz Grenadine","0.33 oz Vodka","0.33 oz Blue Curaçao"], instructions: "Layer carefully: red, white (vodka), blue. Patriotic and potent.", glass: "shot" },
+      { name: "Frostbite", ingredients: ["0.5 oz Tequila","0.5 oz White Crème de Cacao","0.5 oz Blue Curaçao"], instructions: "Shake with ice, strain. Cold and biting.", glass: "shot" },
+      { name: "Good and Plenty", ingredients: ["0.5 oz Anisette","0.5 oz Kahlúa"], instructions: "Layer in shot glass. Tastes like the candy.", glass: "shot" },
+      { name: "Happy Rancher", ingredients: ["0.5 oz Watermelon Pucker","0.5 oz Vodka","Splash Cranberry Juice"], instructions: "Shake with ice, strain into shot glass.", glass: "shot" },
+      { name: "Head Banger", ingredients: ["0.5 oz Tequila","0.5 oz Rum","0.5 oz Vodka"], instructions: "Shake with ice, strain. Tomorrow you'll know why it's called that.", glass: "shot" },
+      { name: "Hummer", ingredients: ["0.5 oz Kahlúa","0.5 oz Baileys","0.5 oz Rum"], instructions: "Layer or shake. Smooth and deceptive.", glass: "shot" },
+      { name: "Hurricane Shot", ingredients: ["0.5 oz Light Rum","0.5 oz Dark Rum","Splash Passion Fruit Juice","Splash OJ","Dash Lime Juice"], instructions: "Shake with ice, strain. Mini version of the classic.", glass: "shot" },
+      { name: "Illusion", ingredients: ["0.5 oz Vodka","0.5 oz Midori","0.5 oz Cointreau","Splash Pineapple Juice"], instructions: "Shake with ice, strain into shot glass.", glass: "shot" },
+      { name: "International Incident", ingredients: ["0.25 oz Vodka","0.25 oz Rum","0.25 oz Gin","0.25 oz Tequila","Splash OJ"], instructions: "Shake with ice, strain. A world tour in one glass.", glass: "shot" },
+      { name: "Irish Flag", ingredients: ["0.33 oz Crème de Menthe (green)","0.33 oz Baileys Irish Cream","0.33 oz Grand Marnier"], instructions: "Layer carefully: green, white, orange. The Irish tricolor.", glass: "shot" },
+      { name: "Jell-O Shot", ingredients: ["1 cup Boiling Water","1 pkg Jell-O (any flavor)","1 cup Vodka or Rum"], instructions: "Dissolve Jell-O in water. Stir in cold alcohol. Refrigerate until set.", glass: "shot" },
+      { name: "Jelly Bean", ingredients: ["0.5 oz Blackberry Brandy","0.5 oz Anisette"], instructions: "Combine in shot glass. Tastes remarkably like the candy.", glass: "shot" },
+      { name: "Kamikaze", ingredients: ["1 oz Vodka","0.5 oz Triple Sec","0.5 oz Lime Juice"], instructions: "Shake with ice, strain into shot glass.", glass: "shot" },
+      { name: "Lemon Drop", ingredients: ["1.5 oz Vodka","0.5 oz Triple Sec","1 oz Lemon Juice","Sugared rim"], instructions: "Shake with ice, strain into sugared shot glass. Pucker up.", glass: "shot" },
+      { name: "Liquid Cocaine", ingredients: ["0.5 oz Jägermeister","0.5 oz Rumple Minze","0.5 oz Bacardi 151"], instructions: "Layer carefully. Do not shake. Approach with respect.", glass: "shot" },
+      { name: "Melon Ball", ingredients: ["0.5 oz Vodka","0.5 oz Midori","2 oz Pineapple Juice"], instructions: "Shake with ice, strain into shot glass.", glass: "shot" },
+      { name: "Mind Eraser", ingredients: ["1 oz Vodka","1 oz Kahlúa","Splash Club Soda"], instructions: "Build over ice with straw. Drink in one pull through the straw.", glass: "shot" },
+      { name: "Nutty Irishman", ingredients: ["0.5 oz Frangelico","0.5 oz Baileys Irish Cream"], instructions: "Combine in shot glass. Serve slightly chilled.", glass: "shot" },
+      { name: "Orange Crush", ingredients: ["1 oz Vodka","0.5 oz Triple Sec","Splash OJ","Splash 7-Up"], instructions: "Shake with ice, strain.", glass: "shot" },
+      { name: "Orgasm", ingredients: ["0.5 oz Kahlúa","0.5 oz Baileys","0.5 oz Amaretto"], instructions: "Layer in shot glass or shake. Either way, very smooth.", glass: "shot" },
+      { name: "Pineapple Bomber", ingredients: ["1 oz Rum","1 oz Pineapple Juice","Dash Grenadine"], instructions: "Shake with ice, strain into shot glass.", glass: "shot" },
+      { name: "Red Death", ingredients: ["0.5 oz Southern Comfort","0.5 oz Amaretto","0.5 oz Sloe Gin","0.5 oz Triple Sec","Splash OJ"], instructions: "Shake with ice, strain into shot glass.", glass: "shot" },
+      { name: "Road Kill", ingredients: ["0.5 oz Whiskey","0.5 oz Vodka","Dash Tabasco"], instructions: "Build in shot glass. Not for the squeamish.", glass: "shot" },
+      { name: "Russian Quaalude", ingredients: ["0.5 oz Vodka","0.5 oz Frangelico","0.5 oz Baileys"], instructions: "Shake with ice, strain. Smooth and strong.", glass: "shot" },
+      { name: "Screaming Orgasm", ingredients: ["0.5 oz Vodka","0.5 oz Kahlúa","0.5 oz Baileys","0.5 oz Amaretto"], instructions: "Shake with ice, strain into shot glass.", glass: "shot" },
+      { name: "Sex On The Beach", ingredients: ["0.5 oz Vodka","0.5 oz Peach Schnapps","Splash Cranberry Juice","Splash OJ"], instructions: "Shake with ice, strain into shot glass.", glass: "shot" },
+      { name: "Silver Spider", ingredients: ["0.5 oz Vodka","0.5 oz Rum","0.5 oz Triple Sec","0.5 oz White Crème de Menthe"], instructions: "Shake with ice, strain into shot glass.", glass: "shot" },
+      { name: "Snowshoe", ingredients: ["0.5 oz Peppermint Schnapps","0.5 oz Wild Turkey Bourbon"], instructions: "Combine in shot glass. Warming and sharp.", glass: "shot" },
+      { name: "Stars and Stripes", ingredients: ["0.33 oz Grenadine","0.33 oz Heavy Cream","0.33 oz Blue Curaçao"], instructions: "Layer carefully: red, white, blue. Handle with steady hands.", glass: "shot" },
+      { name: "Storm Trooper", ingredients: ["0.5 oz Vodka","0.5 oz Rumple Minze"], instructions: "Combine in shot glass. Serve ice cold.", glass: "shot" },
+      { name: "Taboo", ingredients: ["0.5 oz Vodka","0.5 oz Pineapple Juice","Dash Triple Sec","Splash Cranberry Juice"], instructions: "Shake with ice, strain. Forbidden and fruity.", glass: "shot" },
+      { name: "Terminator", ingredients: ["0.5 oz Vodka","0.5 oz Rum","0.5 oz Gin","0.5 oz Tequila","0.5 oz Kahlúa"], instructions: "Shake with ice, strain. This one lives up to its name.", glass: "shot" },
+      { name: "Three Wise Men", ingredients: ["0.5 oz Jack Daniel's","0.5 oz Jim Beam","0.5 oz Johnnie Walker"], instructions: "Pour into shot glass. No mixing needed — they know what they're doing.", glass: "shot" },
+      { name: "Triple T", ingredients: ["0.33 oz Tequila","0.33 oz Tia Maria","0.33 oz Triple Sec"], instructions: "Combine in shot glass. Three T's, one shot.", glass: "shot" },
+      { name: "Windex", ingredients: ["1 oz Vodka","0.5 oz Blue Curaçao","Splash 7-Up"], instructions: "Shake with ice, strain. The color says it all.", glass: "shot" },
+      { name: "Woo Woo", ingredients: ["0.5 oz Vodka","0.5 oz Peach Schnapps","Splash Cranberry Juice"], instructions: "Shake with ice, strain into shot glass.", glass: "shot" },
+    ]
+  },
+  classics: {
+    label: "Classic Cocktails", emoji: "🍸", color: "#1a6b3c",
+    items: [
+      { name: "Alabama", ingredients: ["1.5 oz Rum","0.5 oz Triple Sec","0.5 oz Lime Juice","Dash Grenadine"], instructions: "Shake with ice, strain into chilled cocktail glass.", glass: "cocktail" },
+      { name: "Amaretto Sour", ingredients: ["1.5 oz Amaretto","1 oz Lemon Juice","0.5 oz Simple Syrup","Optional: Egg White"], instructions: "Shake vigorously. Strain over fresh ice. Garnish with cherry.", glass: "rocks" },
+      { name: "Applejack", ingredients: ["2 oz Applejack Brandy","0.5 oz Grenadine","1 oz Lemon Juice"], instructions: "Shake with ice, strain into chilled glass.", glass: "cocktail" },
+      { name: "Beachcomber", ingredients: ["1.5 oz Light Rum","0.5 oz Triple Sec","0.5 oz Lime Juice","Dash Maraschino"], instructions: "Shake with ice, strain into salt-rimmed cocktail glass.", glass: "cocktail" },
+      { name: "Black Maria", ingredients: ["2 oz Dark Rum","1 oz Coffee Liqueur","4 oz Cold Black Coffee","1 tsp Sugar"], instructions: "Combine in glass over ice. Stir well.", glass: "rocks" },
+      { name: "Bloody Mary", ingredients: ["1.5 oz Vodka","4 oz Tomato Juice","0.5 oz Lemon Juice","2 dashes Worcestershire","2 dashes Tabasco","Salt & Pepper","Celery stalk"], instructions: "Build over ice in highball glass. Stir gently. Garnish with celery.", glass: "highball" },
+      { name: "Blue Hawaiian", ingredients: ["1 oz Light Rum","0.5 oz Blue Curaçao","2 oz Pineapple Juice","1 oz Cream of Coconut"], instructions: "Blend with ice until smooth, or shake. Serve in chilled glass.", glass: "highball" },
+      { name: "Cape Codder", ingredients: ["1.5 oz Vodka","4 oz Cranberry Juice","Lime wedge"], instructions: "Build over ice in highball glass. Garnish with lime.", glass: "highball" },
+      { name: "Cosmopolitan", ingredients: ["1.5 oz Citrus Vodka","0.5 oz Triple Sec","0.5 oz Lime Juice","1 oz Cranberry Juice"], instructions: "Shake with ice, strain into chilled cocktail glass. Garnish with lime twist.", glass: "cocktail" },
+      { name: "Daiquiri", ingredients: ["2 oz Light Rum","1 oz Lime Juice","0.75 oz Simple Syrup"], instructions: "Shake well with ice. Strain into a chilled cocktail glass.", glass: "cocktail" },
+      { name: "Gimlet", ingredients: ["2 oz Gin (or Vodka)","0.75 oz Fresh Lime Juice","0.75 oz Simple Syrup"], instructions: "Shake with ice, strain into chilled cocktail glass. Garnish with lime wheel.", glass: "cocktail" },
+      { name: "Harvey Wallbanger", ingredients: ["1.5 oz Vodka","4 oz Orange Juice","0.5 oz Galliano (floated)"], instructions: "Build vodka and OJ over ice. Float Galliano on top.", glass: "highball" },
+      { name: "Highball", ingredients: ["2 oz Whiskey or Spirits of choice","4 oz Ginger Ale or Club Soda"], instructions: "Build over ice in highball glass. Stir once.", glass: "highball" },
+      { name: "Isle of Coconut", ingredients: ["1.5 oz Coconut Rum","2 oz Pineapple Juice","1 oz Cream of Coconut","Splash Blue Curaçao"], instructions: "Shake with ice, strain over fresh ice. Garnish with pineapple.", glass: "highball" },
+      { name: "Kentucky Derby", ingredients: ["2 oz Bourbon","1 oz Peach Schnapps","2 oz Orange Juice","Splash Grenadine"], instructions: "Shake with ice, strain over fresh ice. Garnish with orange slice.", glass: "highball" },
+      { name: "Long Island Iced Tea", ingredients: ["0.5 oz Vodka","0.5 oz Rum","0.5 oz Gin","0.5 oz Tequila","0.5 oz Triple Sec","1 oz Sour Mix","Splash Cola"], instructions: "Combine all spirits and sour mix in shaker with ice. Strain over ice, top with cola.", glass: "highball" },
+      { name: "Lynchburg Lemonade", ingredients: ["1.5 oz Jack Daniel's","1 oz Triple Sec","1 oz Sour Mix","Lemon-lime soda"], instructions: "Shake whiskey, triple sec, sour mix with ice. Strain over ice, top with soda.", glass: "highball" },
+      { name: "Madras", ingredients: ["1.5 oz Vodka","3 oz Cranberry Juice","1 oz Orange Juice"], instructions: "Build over ice in highball glass. Stir gently.", glass: "highball" },
+      { name: "Mai Tai", ingredients: ["1.5 oz Light Rum","0.5 oz Dark Rum (floated)","0.5 oz Orange Curaçao","0.5 oz Orgeat Syrup","1 oz Lime Juice"], instructions: "Shake light rum, curaçao, orgeat, lime with ice. Strain over ice. Float dark rum.", glass: "highball" },
+      { name: "Manhattan", ingredients: ["2 oz Rye or Bourbon","1 oz Sweet Vermouth","2 dashes Angostura Bitters"], instructions: "Stir with ice until cold. Strain into chilled cocktail glass. Garnish with cherry.", glass: "cocktail" },
+      { name: "Margarita", ingredients: ["2 oz Tequila","1 oz Triple Sec","1 oz Fresh Lime Juice","Salt rim"], instructions: "Shake all with ice. Strain into salt-rimmed glass over ice, or straight up.", glass: "rocks" },
+      { name: "Martini", ingredients: ["2.5 oz Gin","0.5 oz Dry Vermouth","Lemon twist or olive"], instructions: "Stir with ice until very cold. Strain into chilled martini glass.", glass: "cocktail" },
+      { name: "Matador", ingredients: ["1.5 oz Tequila","3 oz Pineapple Juice","0.5 oz Lime Juice"], instructions: "Shake with ice, strain over fresh ice. Garnish with pineapple.", glass: "highball" },
+      { name: "Mudslide", ingredients: ["1 oz Vodka","1 oz Kahlúa","1 oz Baileys Irish Cream"], instructions: "Shake with ice, pour over ice. Or blend for a frozen version.", glass: "rocks" },
+      { name: "Nutty Piña Colada", ingredients: ["1.5 oz Coconut Rum","0.5 oz Amaretto","2 oz Pineapple Juice","1 oz Cream of Coconut"], instructions: "Blend with ice until smooth. Garnish with pineapple and cherry.", glass: "highball" },
+      { name: "Old Fashioned", ingredients: ["2 oz Bourbon or Rye","1 Sugar Cube","2 dashes Angostura Bitters","Orange twist","Maraschino cherry"], instructions: "Muddle sugar with bitters in glass. Add spirit, large ice cube. Stir. Garnish.", glass: "rocks" },
+      { name: "Panda Bear", ingredients: ["1 oz Vodka","0.5 oz White Crème de Cacao","0.5 oz Baileys","Splash Cream"], instructions: "Shake with ice, strain into chilled glass.", glass: "cocktail" },
+      { name: "Pink Squirrel", ingredients: ["1 oz Crème de Noyaux","1 oz White Crème de Cacao","1 oz Heavy Cream"], instructions: "Shake vigorously with ice. Strain into chilled cocktail glass.", glass: "cocktail" },
+      { name: "Rob Roy", ingredients: ["2 oz Scotch Whisky","1 oz Sweet Vermouth","2 dashes Angostura Bitters"], instructions: "Stir with ice until cold. Strain into chilled cocktail glass. Garnish with cherry.", glass: "cocktail" },
+      { name: "Rusty Nail", ingredients: ["1.5 oz Scotch Whisky","0.75 oz Drambuie"], instructions: "Build over ice in rocks glass. Stir gently.", glass: "rocks" },
+      { name: "Salty Dog", ingredients: ["2 oz Vodka or Gin","4 oz Grapefruit Juice","Salt rim"], instructions: "Build over ice in salt-rimmed highball glass.", glass: "highball" },
+      { name: "Sangria", ingredients: ["1 bottle Red Wine","2 oz Brandy","1 oz Triple Sec","2 oz OJ","Sliced citrus fruit"], instructions: "Mix wine, brandy, triple sec, and juice. Add sliced fruit. Chill at least 2 hours.", glass: "wine" },
+      { name: "Screwdriver", ingredients: ["2 oz Vodka","4 oz Orange Juice"], instructions: "Build over ice in highball glass. Stir.", glass: "highball" },
+      { name: "Sea Breeze", ingredients: ["1.5 oz Vodka","3 oz Cranberry Juice","1 oz Grapefruit Juice"], instructions: "Build over ice in highball glass. Garnish with lime.", glass: "highball" },
+      { name: "Seven and Seven", ingredients: ["1.5 oz Seagram's 7 Crown","4 oz 7-Up"], instructions: "Build over ice in highball glass.", glass: "highball" },
+      { name: "Sex on the Beach", ingredients: ["1.5 oz Vodka","0.5 oz Peach Schnapps","2 oz Cranberry Juice","2 oz Orange Juice"], instructions: "Build over ice. Garnish with orange slice.", glass: "highball" },
+      { name: "Sniffer", ingredients: ["2 oz Brandy"], instructions: "Pour into a snifter. Warm with hands. Inhale deeply before sipping.", glass: "cocktail" },
+      { name: "Spritzer", ingredients: ["4 oz White Wine","2 oz Club Soda","Lemon twist"], instructions: "Pour wine over ice in wine glass. Top with soda, add lemon twist.", glass: "wine" },
+      { name: "Steppes", ingredients: ["1.5 oz Vodka","1 oz White Crème de Cacao","Splash Cream"], instructions: "Shake with ice, strain into chilled glass.", glass: "cocktail" },
+      { name: "Stinger", ingredients: ["2 oz Brandy","1 oz White Crème de Menthe"], instructions: "Shake with ice, strain into chilled cocktail glass.", glass: "cocktail" },
+      { name: "Tequila Sunrise", ingredients: ["2 oz Tequila","4 oz Orange Juice","0.5 oz Grenadine"], instructions: "Pour tequila and OJ over ice. Slowly add grenadine — it sinks to create the sunrise effect.", glass: "highball" },
+      { name: "Toasted Almond", ingredients: ["1 oz Kahlúa","1 oz Amaretto","2 oz Heavy Cream"], instructions: "Shake with ice, strain over fresh ice.", glass: "rocks" },
+      { name: "Watermelon", ingredients: ["1.5 oz Vodka","0.5 oz Watermelon Schnapps","Splash Cranberry Juice","Splash OJ"], instructions: "Shake with ice, strain into chilled glass.", glass: "highball" },
+      { name: "Whiskey Sour", ingredients: ["2 oz Bourbon","0.75 oz Fresh Lemon Juice","0.5 oz Simple Syrup","Optional: Egg White"], instructions: "Shake all ingredients with ice. Strain into glass over fresh ice. Garnish with cherry.", glass: "rocks" },
+    ]
+  },
+  coffee: {
+    label: "Coffee Drinks", emoji: "☕", color: "#6f4e37",
+    items: [
+      { name: "Boston Iced Coffee", ingredients: ["1.5 oz Coffee Liqueur","1 oz Vodka","6 oz Iced Coffee","Cream to taste"], instructions: "Combine in glass over ice. Stir well. Add cream to taste.", glass: "highball" },
+      { name: "Café Brulot", ingredients: ["2 oz Brandy","1 oz Triple Sec","4 Cloves","Cinnamon stick","Orange peel strip","6 oz Hot Coffee"], instructions: "Heat brandy and triple sec with cloves, cinnamon, and orange peel. Flame briefly, then pour hot coffee to extinguish.", glass: "mug" },
+      { name: "Café Grog", ingredients: ["1.5 oz Dark Rum","1 tsp Brown Sugar","Lemon slice","6 oz Hot Coffee"], instructions: "Add rum and sugar to hot mug. Fill with coffee. Garnish with lemon slice.", glass: "mug" },
+      { name: "Café Orange", ingredients: ["1 oz Grand Marnier","0.5 oz Brandy","6 oz Hot Coffee","Whipped Cream","Orange zest"], instructions: "Warm mug. Add Grand Marnier and brandy, top with coffee and whipped cream.", glass: "mug" },
+      { name: "Café Royale", ingredients: ["1.5 oz Brandy","6 oz Hot Coffee","Sugar Cube"], instructions: "Pour coffee. Balance a brandy-soaked sugar cube on a spoon over the cup, flame it, let burn out, stir.", glass: "mug" },
+      { name: "Carib Coffee", ingredients: ["1 oz Rum","0.5 oz Coconut Rum","6 oz Hot Coffee","Whipped Cream"], instructions: "Combine rums in warm mug. Fill with hot coffee. Top with whipped cream.", glass: "mug" },
+      { name: "Comfortable Mocha", ingredients: ["1 oz Southern Comfort","1 oz Chocolate Syrup","6 oz Hot Coffee","Whipped Cream"], instructions: "Stir Southern Comfort and chocolate into hot coffee. Top with whipped cream.", glass: "mug" },
+      { name: "Double Mint Coffee", ingredients: ["1 oz Peppermint Schnapps","0.5 oz White Crème de Menthe","6 oz Hot Coffee","Whipped Cream"], instructions: "Add schnapps and crème de menthe to hot coffee. Top with whipped cream.", glass: "mug" },
+      { name: "Hot Kiss", ingredients: ["1 oz Amaretto","0.5 oz White Crème de Cacao","6 oz Hot Coffee","Whipped Cream"], instructions: "Combine in warm mug. Float whipped cream on top.", glass: "mug" },
+      { name: "Irish Coffee", ingredients: ["1.5 oz Irish Whiskey","6 oz Hot Coffee","1 tsp Brown Sugar","Whipped Cream"], instructions: "Warm the glass with hot water. Discard water. Add whiskey and sugar, top with coffee, float whipped cream.", glass: "mug" },
+      { name: "Jamaican Coffee", ingredients: ["1 oz Dark Rum","0.5 oz Tia Maria","6 oz Hot Coffee","Whipped Cream"], instructions: "Mix rum and Tia Maria in warm glass. Add coffee, top with whipped cream.", glass: "mug" },
+      { name: "Jamocha", ingredients: ["1 oz Rum","0.5 oz Coffee Liqueur","0.5 oz Chocolate Syrup","6 oz Hot Coffee"], instructions: "Combine in warm mug. Stir well. Top with cream if desired.", glass: "mug" },
+      { name: "Mexican Coffee", ingredients: ["1 oz Kahlúa","0.5 oz Tequila","6 oz Hot Coffee","Whipped Cream"], instructions: "Add Kahlúa and tequila to hot coffee. Top with whipped cream.", glass: "mug" },
+      { name: "Razzmatazzer", ingredients: ["1 oz Raspberry Liqueur","0.5 oz Vodka","6 oz Hot Coffee","Whipped Cream"], instructions: "Combine in warm mug. Top with whipped cream.", glass: "mug" },
+      { name: "Russian Coffee", ingredients: ["1 oz Vodka","0.5 oz Kahlúa","6 oz Hot Coffee","Whipped Cream"], instructions: "Combine in warm mug. Float whipped cream.", glass: "mug" },
+      { name: "Turkish Coffee", ingredients: ["2 oz Strong Espresso","1 oz Brandy","Sugar to taste","Pinch Cardamom"], instructions: "Brew strong coffee with cardamom. Add brandy and sweeten to taste.", glass: "mug" },
+      { name: "Venetian Coffee", ingredients: ["1 oz Brandy","0.5 oz Grappa","6 oz Hot Espresso","Lemon peel"], instructions: "Combine brandy and grappa in espresso. Twist lemon peel over top.", glass: "mug" },
+    ]
+  },
+  punches: {
+    label: "Punches & Party Drinks", emoji: "🍹", color: "#8e44ad",
+    items: [
+      { name: "Anniversary Punch", ingredients: ["2 bottles Champagne","1 bottle Riesling","1 cup Brandy","2 cups White Grape Juice"], instructions: "Chill all ingredients. Combine in punch bowl with floating ice mold before serving.", glass: "punch" },
+      { name: "Banana Colada Punch", ingredients: ["2 oz Coconut Rum","1 oz Banana Liqueur","1 Ripe Banana","2 oz Pineapple Juice","1 oz Cream of Coconut"], instructions: "Blend all with ice until smooth. Garnish with banana slice.", glass: "highball" },
+      { name: "Boston Ann", ingredients: ["1.5 oz Rum","1 oz Banana Liqueur","2 oz Pineapple Juice","1 oz Cream of Coconut"], instructions: "Shake with ice, pour over ice in glass. Garnish with fruit.", glass: "highball" },
+      { name: "Brunch Punch", ingredients: ["1 bottle White Wine (chilled)","12 oz Frozen Lemonade concentrate","12 oz Frozen OJ concentrate","2-liter Ginger Ale"], instructions: "Combine wine and concentrates in punch bowl. Add ginger ale just before serving.", glass: "punch" },
+      { name: "Christmas Punch", ingredients: ["2 bottles Champagne","2 cups Cranberry Juice","1 cup Vodka","1 cup OJ","Fruit Ice Ring"], instructions: "Chill all liquid ingredients. Combine in punch bowl with fruit ice ring just before serving.", glass: "punch" },
+      { name: "Christmas Tea", ingredients: ["2 cups Brewed Tea (cooled)","1 cup Rum","1 cup OJ","Cinnamon sticks","Cloves","Orange slices"], instructions: "Steep spices in warm tea. Cool, add rum and OJ. Serve over ice with orange slices.", glass: "highball" },
+      { name: "Eggnog", ingredients: ["2 oz Bourbon or Rum","1 Egg","1 tsp Sugar","4 oz Whole Milk","Grated Nutmeg"], instructions: "Shake egg, sugar, and milk vigorously. Add liquor, shake again. Strain into glass, dust with nutmeg.", glass: "rocks" },
+      { name: "Glogg", ingredients: ["1 bottle Red Wine","4 oz Aquavit","2 oz Brandy","Sugar to taste","Cloves","Cinnamon stick","Cardamom pods","Raisins & Almonds"], instructions: "Heat wine with spices (do not boil). Add spirits, sweeten. Serve warm with raisins and almonds.", glass: "mug" },
+      { name: "Guard's Punch", ingredients: ["1 bottle Champagne","4 oz Brandy","2 oz Curaçao","Juice of 2 Lemons","Sugar to taste"], instructions: "Chill ingredients. Combine in punch bowl over ice block. Add champagne last.", glass: "punch" },
+      { name: "Happy Hour Punch", ingredients: ["2 cups Vodka","2 cups Rum","1 liter OJ","1 liter Pineapple Juice","2-liter Ginger Ale"], instructions: "Mix spirits and juices. Chill thoroughly. Add ginger ale and garnish right before serving.", glass: "punch" },
+      { name: "Hot Butter Rum", ingredients: ["2 oz Dark Rum","1 tbsp Butter","1 tsp Brown Sugar","Pinch Cinnamon","Pinch Nutmeg","Boiling Water"], instructions: "Cream butter with sugar and spices. Add rum to warm mug, fill with boiling water, stir in butter mixture.", glass: "mug" },
+      { name: "Independence Day Punch", ingredients: ["1 cup Vodka","1 cup Blue Curaçao","2 cups Grenadine","2-liter Sprite"], instructions: "Add ingredients to punch bowl in layers. Add Sprite last for red, white, and blue effect.", glass: "punch" },
+      { name: "Kentucky Punch", ingredients: ["1 bottle Bourbon","1 can Frozen Lemonade","2-liter Ginger Ale","Lemon slices"], instructions: "Mix bourbon and lemonade. Chill. Add ginger ale and lemon just before serving.", glass: "punch" },
+      { name: "Mint Julep", ingredients: ["2.5 oz Bourbon","0.5 oz Simple Syrup","8-10 Fresh Mint Leaves","Crushed Ice"], instructions: "Gently muddle mint with syrup in julep cup. Fill with crushed ice. Add bourbon. Garnish with mint sprig.", glass: "julep" },
+      { name: "Planter's Punch", ingredients: ["2 oz Dark Rum","1 oz Lime Juice","1 oz Orange Juice","0.5 oz Grenadine","Dash Angostura Bitters"], instructions: "Shake with ice, strain over fresh ice. Garnish with orange slice and cherry.", glass: "highball" },
+      { name: "Rum Honey", ingredients: ["2 oz Dark Rum","1 oz Honey","0.5 oz Lemon Juice","Hot Water"], instructions: "Dissolve honey in a little hot water. Add rum and lemon. Serve warm.", glass: "mug" },
+      { name: "Summer Punch", ingredients: ["1 cup Rum","2 cups Pineapple Juice","1 cup Coconut Cream","Lime slices","2-liter Sprite"], instructions: "Mix rum, pineapple juice, and coconut cream. Chill. Add Sprite and lime slices just before serving.", glass: "punch" },
+      { name: "Sunshine Punch", ingredients: ["1 cup Vodka","2 cups Orange Juice","1 cup Pineapple Juice","Splash Grenadine"], instructions: "Combine all in punch bowl over ice. Drizzle grenadine for a sunrise effect.", glass: "punch" },
+      { name: "Toddy", ingredients: ["2 oz Bourbon or Scotch","1 tsp Honey","0.5 oz Lemon Juice","1 Cinnamon stick","Hot Water"], instructions: "Combine spirits, honey, and lemon in warm mug. Fill with hot water. Stir with cinnamon stick.", glass: "mug" },
+      { name: "Vermont", ingredients: ["2 oz Bourbon","4 oz Apple Cider","0.5 oz Maple Syrup","Dash Cinnamon"], instructions: "Warm cider with maple syrup and cinnamon. Add bourbon. Serve in warm mug.", glass: "mug" },
+      { name: "Witches Brew", ingredients: ["2 cups Vodka","4 cups Apple Cider","1 cup OJ","Green Food Coloring","Dry Ice (optional)"], instructions: "Mix all liquid ingredients. Add green food coloring for effect. Add dry ice just before serving for a spooky fog.", glass: "punch" },
+    ]
+  },
+  frozen: {
+    label: "Frozen Drinks", emoji: "🧊", color: "#2471a3",
+    items: [
+      { name: "Frozen Daiquiri", ingredients: ["2 oz Light Rum","1 oz Lime Juice","0.75 oz Simple Syrup"], instructions: "Blend with 1 cup crushed ice until smooth. Pour into chilled glass.", glass: "cocktail" },
+      { name: "Frozen Margarita", ingredients: ["2 oz Tequila","1 oz Triple Sec","1 oz Fresh Lime Juice","Salt rim"], instructions: "Blend with crushed ice until smooth. Pour into salt-rimmed glass.", glass: "rocks" },
+      { name: "Piña Colada", ingredients: ["2 oz Coconut Rum or Light Rum","1 oz Cream of Coconut","2 oz Pineapple Juice"], instructions: "Blend all with 1 cup ice until smooth. Garnish with pineapple and cherry.", glass: "highball" },
+      { name: "Piña Fría", ingredients: ["2 oz Coconut Rum","2 oz Pineapple Juice","1 oz Lime Juice","0.5 oz Simple Syrup"], instructions: "Blend with crushed ice. Less creamy than a colada — more refreshing.", glass: "highball" },
+      { name: "Frozen Grasshopper", ingredients: ["1 oz Crème de Menthe (green)","1 oz White Crème de Cacao","2 oz Vanilla Ice Cream"], instructions: "Blend with ice until creamy and smooth. A dessert in a glass.", glass: "cocktail" },
+      { name: "Frozen Mudslide", ingredients: ["1 oz Vodka","1 oz Kahlúa","1 oz Baileys Irish Cream","2 scoops Vanilla Ice Cream"], instructions: "Blend all ingredients until smooth and creamy.", glass: "highball" },
+      { name: "Frozen Blue Hawaiian", ingredients: ["1 oz Light Rum","0.5 oz Blue Curaçao","2 oz Pineapple Juice","1 oz Cream of Coconut"], instructions: "Blend with 1 cup crushed ice until smooth.", glass: "highball" },
+    ]
+  },
+  beer: {
+    label: "Beer & Mixers", emoji: "🍺", color: "#c07828",
+    items: [
+      { name: "Black and Tan", ingredients: ["8 oz Pale Ale","8 oz Guinness Stout (floated)"], instructions: "Pour pale ale into pint glass. Float Guinness over back of a spoon on top.", glass: "highball" },
+      { name: "Shandy", ingredients: ["8 oz Beer (lager)","8 oz Lemonade or Ginger Beer"], instructions: "Pour beer, top with equal part lemonade or ginger beer.", glass: "highball" },
+      { name: "Beer Margarita", ingredients: ["12 oz Light Beer","6 oz Limeade concentrate","6 oz Tequila"], instructions: "Combine in pitcher. Stir gently. Serve over ice in salt-rimmed glasses.", glass: "highball" },
+      { name: "Michelada", ingredients: ["12 oz Light Mexican Beer","1 oz Lime Juice","Dash Worcestershire","Dash Tabasco","Salt rim"], instructions: "Add lime juice and sauces to salt-rimmed glass with ice. Pour beer.", glass: "highball" },
+    ]
+  }
+};
+
+// SVG glass paths
+const GLASS_SVG = {
+  shot: `<path d="M10 4 L14 30 L6 30 Z" fill="rgba(160,100,30,0.1)" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>`,
+  mug: `<rect x="4" y="6" width="16" height="22" rx="1.5" fill="rgba(160,100,30,0.08)" stroke="currentColor" stroke-width="1.3"/><path d="M20 10 Q26 12 26 18 Q26 23 20 23" fill="none" stroke="currentColor" stroke-width="1.3"/>`,
+  cocktail: `<path d="M3 3 L13 18 L13 28 L9 28 L9 30 L17 30 L17 28 L13 28 L13 18 L23 3 Z" fill="rgba(160,100,30,0.08)" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>`,
+  rocks: `<path d="M5 8 L7 30 L19 30 L21 8 Z" fill="rgba(160,100,30,0.08)" stroke="currentColor" stroke-width="1.3"/>`,
+  highball: `<rect x="6" y="3" width="13" height="28" rx="1" fill="rgba(160,100,30,0.08)" stroke="currentColor" stroke-width="1.3"/>`,
+  wine: `<path d="M7 3 Q3 14 7 20 L9 28 L7 30 L19 30 L17 28 L19 20 Q23 14 19 3 Z" fill="rgba(160,100,30,0.08)" stroke="currentColor" stroke-width="1.3"/>`,
+  julep: `<path d="M5 3 L7 30 L19 30 L21 3 Z" fill="rgba(160,100,30,0.08)" stroke="currentColor" stroke-width="1.3"/>`,
+  punch: `<path d="M3 8 Q3 28 13 28 Q23 28 23 8 Z" fill="rgba(160,100,30,0.08)" stroke="currentColor" stroke-width="1.3"/><line x1="7" y1="4" x2="19" y2="4" stroke="currentColor" stroke-width="1.3"/>`,
+};
+
+function glassSVG(type, size) {
+  const w = Math.round(size * 0.75), h = size;
+  const shape = GLASS_SVG[type] || GLASS_SVG.rocks;
+  return `<svg viewBox="0 0 26 34" width="${w}" height="${h}" style="display:block">${shape}</svg>`;
+}
+
+// State
+let activeCategory = 'shots';
+let selectedDrink = null;
+let searchQuery = '';
+
+const allDrinks = Object.entries(DRINKS).flatMap(([cat, data]) =>
+  data.items.map(d => ({ ...d, category: cat }))
+);
+
+// Clock
+function updateClock() {
+  document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// Build sidebar categories
+function buildSidebar() {
+  const list = document.getElementById('cat-list');
+  list.innerHTML = Object.entries(DRINKS).map(([key, data]) => `
+    <button class="cat-btn${key === activeCategory ? ' active' : ''}" data-cat="${key}"
+      style="border-left-color: ${key === activeCategory && !searchQuery ? data.color : 'transparent'}">
+      <span class="cat-btn-inner">
+        <span class="cat-emoji">${data.emoji}</span>
+        <span>${data.label}</span>
+      </span>
+      <span class="cat-count">${data.items.length}</span>
+    </button>
+  `).join('');
+  document.getElementById('recipe-count').innerHTML = `${allDrinks.length} recipes<br>Restored from 1998 .exe`;
+}
+
+// Build drink grid
+function buildGrid() {
+  const list = searchQuery.trim()
+    ? allDrinks.filter(d =>
+        d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        d.ingredients.some(i => i.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
+    : DRINKS[activeCategory].items.map(d => ({ ...d, category: activeCategory }));
+
+  const heading = document.getElementById('list-heading');
+  heading.textContent = searchQuery
+    ? `${list.length} result${list.length !== 1 ? 's' : ''} for "${searchQuery}"`
+    : DRINKS[activeCategory].label;
+
+  const grid = document.getElementById('drink-grid');
+  grid.innerHTML = list.map((drink, i) => {
+    const isSel = selectedDrink && selectedDrink.name === drink.name;
+    return `<button class="drink-btn${isSel ? ' selected' : ''}"
+      style="animation-delay:${Math.min(i * 0.014, 0.4)}s"
+      data-name="${escapeAttr(drink.name)}" data-cat="${drink.category}">
+      <span class="glass-icon">${glassSVG(drink.glass, 17)}</span>
+      <span class="name">${esc(drink.name)}</span>
+    </button>`;
+  }).join('');
+}
+
+// Show detail panel
+function showDetail(drink) {
+  const section = document.getElementById('detail-section');
+  const empty = document.getElementById('empty-state');
+  const listSection = document.getElementById('list-section');
+
+  section.classList.add('animating');
+  section.style.display = 'block';
+  empty.style.display = 'none';
+  listSection.className = 'has-detail';
+
+  setTimeout(() => {
+    section.innerHTML = `
+      <div class="divider">
+        <div class="divider-line left"></div>
+        <span class="divider-gem">⟡</span>
+        <div class="divider-line right"></div>
+      </div>
+      <div class="detail-inner">
+        <div class="detail-glass">${glassSVG(drink.glass, 60)}</div>
+        <div class="detail-body">
+          <div class="detail-name">${esc(drink.name)}</div>
+          <div class="detail-cat">${esc(DRINKS[drink.category]?.label || '')}</div>
+          <div class="detail-cols">
+            <div class="detail-col ingredients">
+              <h3>Ingredients</h3>
+              <ul>${drink.ingredients.map(ing => `
+                <li><span class="ing-dot">◆</span>${esc(ing)}</li>
+              `).join('')}</ul>
+            </div>
+            <div class="detail-col instructions">
+              <h3>Instructions</h3>
+              <p>${esc(drink.instructions)}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    section.classList.remove('animating');
+  }, 30);
+}
+
+function hideDetail() {
+  document.getElementById('detail-section').style.display = 'none';
+  document.getElementById('empty-state').style.display = 'flex';
+  document.getElementById('list-section').className = 'no-detail';
+}
+
+// Render all
+function render() {
+  buildSidebar();
+  buildGrid();
+  if (selectedDrink) showDetail(selectedDrink);
+}
+
+// Escape helpers
+function esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function escapeAttr(str) {
+  return String(str).replace(/"/g,'&quot;');
+}
+
+// Events
+document.getElementById('cat-list').addEventListener('click', e => {
+  const btn = e.target.closest('.cat-btn');
+  if (!btn) return;
+  activeCategory = btn.dataset.cat;
+  selectedDrink = null;
+  searchQuery = '';
+  document.getElementById('search').value = '';
+  hideDetail();
+  render();
+});
+
+document.getElementById('drink-grid').addEventListener('click', e => {
+  const btn = e.target.closest('.drink-btn');
+  if (!btn) return;
+  const name = btn.dataset.name;
+  const cat = btn.dataset.cat;
+  const drink = DRINKS[cat]?.items.find(d => d.name === name);
+  if (!drink) return;
+  selectedDrink = { ...drink, category: cat };
+  buildGrid();
+  showDetail(selectedDrink);
+});
+
+document.getElementById('search').addEventListener('input', e => {
+  searchQuery = e.target.value;
+  selectedDrink = null;
+  hideDetail();
+  buildSidebar();
+  buildGrid();
+});
+
+document.getElementById('surprise-btn').addEventListener('click', () => {
+  const drink = allDrinks[Math.floor(Math.random() * allDrinks.length)];
+  selectedDrink = drink;
+  activeCategory = drink.category;
+  searchQuery = '';
+  document.getElementById('search').value = '';
+  render();
+  showDetail(selectedDrink);
+});
+
+// Init
+render();
+</script>
+</body>
+</html>
