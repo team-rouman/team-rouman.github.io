@@ -1,0 +1,811 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Drive Log</title>
+<style>
+  :root{
+    --asphalt:#1B1F27;
+    --asphalt-2:#242A35;
+    --asphalt-3:#2E3546;
+    --fog:#EEF0EE;
+    --paper:#FFFFFF;
+    --ink:#1B1F27;
+    --mist:#767F8D;
+    --mist-light:#A7ADB8;
+    --amber:#F4B740;
+    --amber-deep:#D99A1F;
+    --taillight:#E14F41;
+    --signal:#4C9A6A;
+    --line:#3A4152;
+    --hairline:#DDE0DD;
+    --font-display: 'Arial Narrow', 'Helvetica Neue Condensed', 'Segoe UI', Arial, sans-serif;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-mono: 'SFMono-Regular', ui-monospace, Menlo, Consolas, 'Courier New', monospace;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; background:var(--fog); color:var(--ink); font-family:var(--font-body); }
+  body{ min-height:100vh; padding-bottom:80px; }
+
+  .wrap{ max-width:760px; margin:0 auto; padding:0 20px; }
+
+  /* ---------- Header ---------- */
+  header.topbar{
+    background:var(--asphalt);
+    color:var(--fog);
+    padding:22px 0 18px;
+    border-bottom:4px solid var(--amber);
+  }
+  header.topbar .wrap{ display:flex; align-items:flex-end; justify-content:space-between; gap:12px; }
+  .brand-eyebrow{
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--amber);
+    margin:0 0 4px;
+  }
+  .brand-title{
+    font-family:var(--font-display);
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+    font-size:32px;
+    margin:0;
+    line-height:1;
+  }
+  .header-actions{ display:flex; gap:8px; }
+  .icon-btn{
+    background:var(--asphalt-2);
+    border:1px solid var(--line);
+    color:var(--fog);
+    width:40px; height:40px;
+    border-radius:8px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+  .icon-btn:hover{ background:var(--asphalt-3); }
+  .icon-btn:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible{
+    outline:2px solid var(--amber); outline-offset:2px;
+  }
+
+  /* ---------- Hero: the road ---------- */
+  .hero{
+    background: linear-gradient(180deg, var(--asphalt) 0%, #14171D 100%);
+    padding:26px 0 20px;
+  }
+  .hero-road-frame{
+    background:var(--asphalt-2);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:14px 8px 4px;
+    overflow:hidden;
+  }
+  .hero-road-frame svg{ width:100%; height:auto; display:block; }
+  .mile-label{
+    font-family:var(--font-mono);
+    font-size:10px;
+    fill:var(--mist-light);
+  }
+  .mile-label.reached{ fill:var(--amber); }
+
+  .readouts{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:14px;
+  }
+  .readout{
+    background:var(--asphalt-2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:12px 14px;
+  }
+  .readout-label{
+    font-family:var(--font-display);
+    font-size:11px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--mist-light);
+    margin:0 0 4px;
+  }
+  .readout-value{
+    font-family:var(--font-mono);
+    font-variant-numeric:tabular-nums;
+    font-size:24px;
+    color:var(--fog);
+    margin:0;
+  }
+  .readout-value small{ color:var(--mist-light); font-size:14px; }
+  .readout-bar{
+    margin-top:8px;
+    height:6px;
+    border-radius:3px;
+    background:repeating-linear-gradient(90deg, var(--line) 0 6px, transparent 6px 10px);
+    overflow:hidden;
+    position:relative;
+  }
+  .readout-bar > span{
+    position:absolute; inset:0;
+    width:0%;
+    background:var(--amber);
+    border-radius:3px;
+    transition:width .6s ease;
+  }
+  .readout-bar.night > span{ background:var(--taillight); }
+  .readout-bar.done > span{ background:var(--signal); }
+
+  /* ---------- Main content ---------- */
+  main{ padding-top:22px; }
+  .section-head{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:12px;
+  }
+  .section-title{
+    font-family:var(--font-display);
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+    font-size:18px;
+    margin:0;
+  }
+  .btn{
+    font-family:var(--font-body);
+    font-weight:600;
+    font-size:14px;
+    border-radius:8px;
+    padding:10px 16px;
+    border:none;
+    cursor:pointer;
+  }
+  .btn-primary{ background:var(--amber); color:var(--asphalt); }
+  .btn-primary:hover{ background:var(--amber-deep); }
+  .btn-ghost{ background:transparent; color:var(--ink); border:1px solid var(--hairline); }
+  .btn-ghost:hover{ background:#fff; }
+  .btn-danger{ background:transparent; color:var(--taillight); border:1px solid transparent; }
+  .btn-danger:hover{ text-decoration:underline; }
+
+  /* ---------- Trip timeline ---------- */
+  .timeline{ position:relative; padding-left:26px; }
+  .timeline::before{
+    content:"";
+    position:absolute; left:9px; top:6px; bottom:6px; width:2px;
+    background-image: repeating-linear-gradient(180deg, var(--amber-deep) 0 8px, transparent 8px 16px);
+  }
+  .trip-card{
+    position:relative;
+    background:var(--paper);
+    border:1px solid var(--hairline);
+    border-radius:12px;
+    padding:14px 16px;
+    margin-bottom:12px;
+  }
+  .trip-card::before{
+    content:"";
+    position:absolute; left:-25px; top:18px;
+    width:10px; height:10px; border-radius:50%;
+    background:var(--asphalt);
+    border:2px solid var(--amber);
+  }
+  .trip-card.night::before{ border-color:var(--taillight); }
+  .trip-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .trip-date{ font-family:var(--font-display); font-weight:800; text-transform:uppercase; font-size:14px; letter-spacing:.03em; }
+  .trip-duration{ font-family:var(--font-mono); font-size:14px; color:var(--mist); white-space:nowrap; }
+  .trip-badges{ display:flex; gap:6px; flex-wrap:wrap; margin:8px 0 6px; }
+  .badge{
+    font-family:var(--font-mono);
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    padding:3px 8px;
+    border-radius:20px;
+    background:var(--fog);
+    color:var(--mist);
+    border:1px solid var(--hairline);
+  }
+  .badge.night{ background:#FBEAE7; color:var(--taillight); border-color:#F3CFC9; }
+  .badge.day{ background:#FCF3DE; color:var(--amber-deep); border-color:#F5E3AE; }
+  .trip-meta{ font-size:13px; color:var(--mist); margin:2px 0; }
+  .trip-notes{ font-size:13px; color:var(--ink); margin-top:8px; border-top:1px dashed var(--hairline); padding-top:8px; }
+  .trip-actions{ display:flex; gap:6px; margin-top:10px; justify-content:flex-end; }
+  .trip-actions button{ font-size:12px; padding:6px 10px; }
+
+  .empty-state{
+    text-align:center;
+    padding:40px 20px;
+    background:var(--paper);
+    border:1px dashed var(--hairline);
+    border-radius:12px;
+    color:var(--mist);
+  }
+  .empty-state p{ margin:0 0 14px; }
+
+  /* ---------- Modal ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(27,31,39,.55);
+    display:none; align-items:flex-end; justify-content:center;
+    z-index:50;
+  }
+  .modal-overlay.open{ display:flex; }
+  .modal{
+    background:var(--paper);
+    width:100%; max-width:520px;
+    border-radius:16px 16px 0 0;
+    max-height:92vh; overflow-y:auto;
+    padding:20px 20px 24px;
+  }
+  @media(min-width:600px){
+    .modal-overlay{ align-items:center; }
+    .modal{ border-radius:16px; margin:20px; }
+  }
+  .modal-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+  .modal-title{ font-family:var(--font-display); font-weight:800; text-transform:uppercase; font-size:18px; margin:0; }
+  .close-x{ background:none; border:none; font-size:22px; line-height:1; cursor:pointer; color:var(--mist); }
+
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--mist); margin-bottom:5px; }
+  .field input[type=text], .field input[type=date], .field input[type=time], .field input[type=number], .field select, .field textarea{
+    width:100%;
+    font-family:var(--font-body);
+    font-size:15px;
+    padding:10px 12px;
+    border:1px solid var(--hairline);
+    border-radius:8px;
+    background:#fff;
+    color:var(--ink);
+  }
+  .field textarea{ resize:vertical; min-height:60px; }
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+  .chip-group{ display:flex; gap:8px; flex-wrap:wrap; }
+  .chip{
+    font-size:13px;
+    padding:8px 12px;
+    border-radius:20px;
+    border:1px solid var(--hairline);
+    background:#fff;
+    cursor:pointer;
+  }
+  .chip.selected{ background:var(--asphalt); color:var(--fog); border-color:var(--asphalt); }
+
+  .toggle-row{ display:flex; align-items:center; gap:10px; }
+  .toggle-row input{ width:18px; height:18px; }
+  .computed-duration{ font-family:var(--font-mono); font-size:13px; color:var(--mist); margin-top:4px; }
+
+  .modal-footer{ display:flex; gap:10px; margin-top:6px; }
+  .modal-footer .btn{ flex:1; }
+
+  .toast{
+    position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px);
+    background:var(--asphalt); color:var(--fog);
+    padding:10px 18px; border-radius:8px;
+    font-size:14px; opacity:0; pointer-events:none;
+    transition:opacity .25s, transform .25s;
+    z-index:60;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  @media (prefers-reduced-motion: reduce){
+    .readout-bar > span, .toast, #carMarker{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <div>
+      <p class="brand-eyebrow">Permit practice tracker</p>
+      <h1 class="brand-title">Drive Log</h1>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="settingsBtn" title="Settings" aria-label="Settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="wrap">
+    <div class="hero-road-frame">
+      <svg id="roadSvg" viewBox="0 0 760 210" xmlns="http://www.w3.org/2000/svg">
+        <path id="roadPath" d="M 30 190 C 150 190, 120 90, 260 90 S 420 190, 560 130 S 700 40, 730 20"
+              fill="none" stroke="#3A4152" stroke-width="26" stroke-linecap="round"/>
+        <path id="roadCenterline" d="M 30 190 C 150 190, 120 90, 260 90 S 420 190, 560 130 S 700 40, 730 20"
+              fill="none" stroke="#5A6272" stroke-width="2" stroke-dasharray="8 10" stroke-linecap="round"/>
+        <g id="mileMarkers"></g>
+        <g id="carMarker">
+          <circle r="9" fill="#F4B740" opacity="0.35"/>
+          <g transform="scale(0.9)">
+            <rect x="-13" y="-6" width="26" height="10" rx="3" fill="#F4B740"/>
+            <rect x="-8" y="-11" width="14" height="7" rx="2" fill="#F4B740"/>
+            <circle cx="-7" cy="5" r="3" fill="#1B1F27"/>
+            <circle cx="7" cy="5" r="3" fill="#1B1F27"/>
+          </g>
+        </g>
+      </svg>
+    </div>
+
+    <div class="readouts">
+      <div class="readout">
+        <p class="readout-label">Total hours</p>
+        <p class="readout-value"><span id="totalVal">0.0</span> <small>/ <span id="totalGoalVal">50</span> hrs</small></p>
+        <div class="readout-bar" id="totalBar"><span></span></div>
+      </div>
+      <div class="readout">
+        <p class="readout-label">Night hours</p>
+        <p class="readout-value"><span id="nightVal">0.0</span> <small>/ <span id="nightGoalVal">10</span> hrs</small></p>
+        <div class="readout-bar night" id="nightBar"><span></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title">Trip log</h2>
+      <button class="btn btn-primary" id="addTripBtn">+ Log trip</button>
+    </div>
+
+    <div id="emptyState" class="empty-state" style="display:none;">
+      <p>Your road so far is empty. Log your first trip to start the journey.</p>
+      <button class="btn btn-primary" id="emptyAddBtn">+ Log your first trip</button>
+    </div>
+
+    <div id="timeline" class="timeline"></div>
+  </div>
+</main>
+
+<!-- Trip Modal -->
+<div class="modal-overlay" id="tripModalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 class="modal-title" id="tripModalTitle">Log a trip</h3>
+      <button class="close-x" id="closeTripModal" aria-label="Close">&times;</button>
+    </div>
+    <form id="tripForm">
+      <input type="hidden" id="tripId" />
+      <div class="row2">
+        <div class="field">
+          <label for="tripDate">Date</label>
+          <input type="date" id="tripDate" required />
+        </div>
+        <div class="field">
+          <label for="tripSupervisor">Supervisor</label>
+          <input type="text" id="tripSupervisor" placeholder="Who rode along" />
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label for="tripStart">Start time</label>
+          <input type="time" id="tripStart" required />
+        </div>
+        <div class="field">
+          <label for="tripEnd">End time</label>
+          <input type="time" id="tripEnd" required />
+        </div>
+      </div>
+      <p class="computed-duration" id="computedDuration">Duration: —</p>
+
+      <div class="field" style="margin-top:14px;">
+        <label>Conditions</label>
+        <div class="toggle-row">
+          <input type="checkbox" id="tripNight" />
+          <label for="tripNight" style="margin:0; text-transform:none; font-weight:400; font-size:14px; letter-spacing:0;">Count as night driving</label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="tripWeather">Weather</label>
+        <select id="tripWeather">
+          <option value="Clear">Clear</option>
+          <option value="Cloudy">Cloudy</option>
+          <option value="Rain">Rain</option>
+          <option value="Snow/Ice">Snow / ice</option>
+          <option value="Fog">Fog</option>
+          <option value="High wind">High wind</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Road type</label>
+        <div class="chip-group" id="roadTypeChips">
+          <div class="chip" data-value="Neighborhood">Neighborhood</div>
+          <div class="chip" data-value="City streets">City streets</div>
+          <div class="chip" data-value="Highway">Highway</div>
+          <div class="chip" data-value="Rural">Rural</div>
+          <div class="chip" data-value="Parking lot">Parking lot</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="tripNotes">Skills practiced / notes</label>
+        <textarea id="tripNotes" placeholder="Parallel parking, merging, roundabouts..."></textarea>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="cancelTripBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save trip</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsModalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 class="modal-title">Goal settings</h3>
+      <button class="close-x" id="closeSettingsModal" aria-label="Close">&times;</button>
+    </div>
+    <form id="settingsForm">
+      <div class="row2">
+        <div class="field">
+          <label for="goalTotal">Total hours required</label>
+          <input type="number" id="goalTotal" min="1" step="0.5" required />
+        </div>
+        <div class="field">
+          <label for="goalNight">Night hours required</label>
+          <input type="number" id="goalNight" min="0" step="0.5" required />
+        </div>
+      </div>
+      <p style="font-size:12px; color:var(--mist);">Defaults are set at 50 total / 10 night hours, a common state requirement — check your own state's rule and adjust here.</p>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="cancelSettingsBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var state = {
+    trips: [],
+    settings: { goalTotal: 50, goalNight: 10 }
+  };
+  var selectedRoadTypes = [];
+
+  // ---------- Storage helpers ----------
+  async function loadData(){
+    try{
+      var t = await window.storage.get('trips');
+      if(t && t.value) state.trips = JSON.parse(t.value);
+    }catch(e){ state.trips = []; }
+    try{
+      var s = await window.storage.get('settings');
+      if(s && s.value) state.settings = JSON.parse(s.value);
+    }catch(e){ /* keep defaults */ }
+    render();
+  }
+
+  async function saveTrips(){
+    try{
+      await window.storage.set('trips', JSON.stringify(state.trips));
+    }catch(e){ showToast("Couldn't save — try again"); }
+  }
+
+  async function saveSettings(){
+    try{
+      await window.storage.set('settings', JSON.stringify(state.settings));
+    }catch(e){ showToast("Couldn't save settings"); }
+  }
+
+  // ---------- Utilities ----------
+  function uid(){ return 't' + Date.now() + Math.random().toString(16).slice(2); }
+
+  function minutesBetween(start, end){
+    var s = toMinutes(start), e = toMinutes(end);
+    var diff = e - s;
+    if(diff <= 0) diff += 24*60; // handle crossing midnight
+    return diff;
+  }
+  function toMinutes(hhmm){
+    var parts = hhmm.split(':');
+    return parseInt(parts[0],10)*60 + parseInt(parts[1],10);
+  }
+  function fmtHours(mins){ return (mins/60).toFixed(1); }
+  function fmtDuration(mins){
+    var h = Math.floor(mins/60), m = mins%60;
+    if(h===0) return m + 'm';
+    if(m===0) return h + 'h';
+    return h + 'h ' + m + 'm';
+  }
+  function fmtDate(dstr){
+    var d = new Date(dstr + 'T00:00:00');
+    return d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+  }
+
+  function totals(){
+    var total = 0, night = 0;
+    state.trips.forEach(function(t){
+      total += t.minutes;
+      if(t.night) night += t.minutes;
+    });
+    return { totalMin: total, nightMin: night };
+  }
+
+  // ---------- Rendering ----------
+  function render(){
+    renderReadouts();
+    renderRoad();
+    renderTimeline();
+  }
+
+  function renderReadouts(){
+    var tt = totals();
+    var goalTotalMin = state.settings.goalTotal * 60;
+    var goalNightMin = state.settings.goalNight * 60;
+
+    document.getElementById('totalVal').textContent = fmtHours(tt.totalMin);
+    document.getElementById('totalGoalVal').textContent = state.settings.goalTotal;
+    document.getElementById('nightVal').textContent = fmtHours(tt.nightMin);
+    document.getElementById('nightGoalVal').textContent = state.settings.goalNight;
+
+    var totalPct = goalTotalMin > 0 ? Math.min(100, (tt.totalMin/goalTotalMin)*100) : 0;
+    var nightPct = goalNightMin > 0 ? Math.min(100, (tt.nightMin/goalNightMin)*100) : 0;
+
+    var totalBar = document.getElementById('totalBar');
+    totalBar.querySelector('span').style.width = totalPct + '%';
+    totalBar.classList.toggle('done', totalPct >= 100);
+
+    var nightBar = document.getElementById('nightBar');
+    nightBar.querySelector('span').style.width = nightPct + '%';
+    nightBar.classList.toggle('done', nightPct >= 100);
+  }
+
+  function renderRoad(){
+    var tt = totals();
+    var goalTotalMin = Math.max(1, state.settings.goalTotal * 60);
+    var pct = Math.min(1, tt.totalMin / goalTotalMin);
+
+    var path = document.getElementById('roadPath');
+    var length = path.getTotalLength();
+    var point = path.getPointAtLength(length * pct);
+    var carMarker = document.getElementById('carMarker');
+    carMarker.setAttribute('transform', 'translate(' + point.x + ',' + point.y + ')');
+
+    // mile markers at quartiles
+    var markersGroup = document.getElementById('mileMarkers');
+    markersGroup.innerHTML = '';
+    [0.25, 0.5, 0.75, 1].forEach(function(frac){
+      var p = path.getPointAtLength(length * frac);
+      var hrsAtMark = (state.settings.goalTotal * frac).toFixed(0);
+      var reached = pct >= frac - 0.001;
+      var ns = 'http://www.w3.org/2000/svg';
+      var tick = document.createElementNS(ns, 'circle');
+      tick.setAttribute('cx', p.x); tick.setAttribute('cy', p.y - 20);
+      tick.setAttribute('r', 3);
+      tick.setAttribute('fill', reached ? '#F4B740' : '#5A6272');
+      markersGroup.appendChild(tick);
+
+      var label = document.createElementNS(ns, 'text');
+      label.setAttribute('x', p.x); label.setAttribute('y', p.y - 26);
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('class', 'mile-label' + (reached ? ' reached' : ''));
+      label.textContent = hrsAtMark + 'h';
+      markersGroup.appendChild(label);
+    });
+  }
+
+  function renderTimeline(){
+    var timeline = document.getElementById('timeline');
+    var empty = document.getElementById('emptyState');
+    var sorted = state.trips.slice().sort(function(a,b){
+      return (b.date + b.start).localeCompare(a.date + a.start);
+    });
+
+    if(sorted.length === 0){
+      timeline.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+
+    timeline.innerHTML = sorted.map(function(t){
+      var badges = '<span class="badge ' + (t.night ? 'night' : 'day') + '">' + (t.night ? 'Night' : 'Day') + '</span>';
+      badges += '<span class="badge">' + escapeHtml(t.weather) + '</span>';
+      (t.roadTypes||[]).forEach(function(rt){ badges += '<span class="badge">' + escapeHtml(rt) + '</span>'; });
+
+      var meta = '';
+      if(t.supervisor) meta += '<p class="trip-meta">With ' + escapeHtml(t.supervisor) + '</p>';
+
+      var notes = t.notes ? '<p class="trip-notes">' + escapeHtml(t.notes) + '</p>' : '';
+
+      return '<div class="trip-card ' + (t.night ? 'night' : '') + '" data-id="' + t.id + '">' +
+        '<div class="trip-top">' +
+          '<div>' +
+            '<div class="trip-date">' + fmtDate(t.date) + '</div>' +
+            '<p class="trip-meta">' + t.start + ' – ' + t.end + '</p>' +
+          '</div>' +
+          '<div class="trip-duration">' + fmtDuration(t.minutes) + '</div>' +
+        '</div>' +
+        '<div class="trip-badges">' + badges + '</div>' +
+        meta +
+        notes +
+        '<div class="trip-actions">' +
+          '<button class="btn btn-ghost edit-btn" data-id="' + t.id + '">Edit</button>' +
+          '<button class="btn btn-danger delete-btn" data-id="' + t.id + '">Delete</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    Array.prototype.forEach.call(timeline.querySelectorAll('.edit-btn'), function(btn){
+      btn.addEventListener('click', function(){ openTripModal(btn.dataset.id); });
+    });
+    Array.prototype.forEach.call(timeline.querySelectorAll('.delete-btn'), function(btn){
+      btn.addEventListener('click', function(){ deleteTrip(btn.dataset.id); });
+    });
+  }
+
+  function escapeHtml(str){
+    var div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+
+  // ---------- Toast ----------
+  var toastTimer;
+  function showToast(msg){
+    var toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toast.classList.remove('show'); }, 2200);
+  }
+
+  // ---------- Trip modal ----------
+  var tripModalOverlay = document.getElementById('tripModalOverlay');
+  var tripForm = document.getElementById('tripForm');
+
+  function openTripModal(editId){
+    tripForm.reset();
+    selectedRoadTypes = [];
+    updateChipUI();
+    document.getElementById('tripId').value = '';
+    document.getElementById('computedDuration').textContent = 'Duration: —';
+
+    if(editId){
+      var trip = state.trips.find(function(t){ return t.id === editId; });
+      if(trip){
+        document.getElementById('tripModalTitle').textContent = 'Edit trip';
+        document.getElementById('tripId').value = trip.id;
+        document.getElementById('tripDate').value = trip.date;
+        document.getElementById('tripStart').value = trip.start;
+        document.getElementById('tripEnd').value = trip.end;
+        document.getElementById('tripSupervisor').value = trip.supervisor || '';
+        document.getElementById('tripNight').checked = !!trip.night;
+        document.getElementById('tripWeather').value = trip.weather;
+        document.getElementById('tripNotes').value = trip.notes || '';
+        selectedRoadTypes = (trip.roadTypes || []).slice();
+        updateChipUI();
+        updateComputedDuration();
+      }
+    } else {
+      document.getElementById('tripModalTitle').textContent = 'Log a trip';
+      var today = new Date();
+      document.getElementById('tripDate').value = today.toISOString().slice(0,10);
+      // prefill last used supervisor for convenience
+      if(state.trips.length){
+        var sorted = state.trips.slice().sort(function(a,b){ return (b.date+b.start).localeCompare(a.date+a.start); });
+        document.getElementById('tripSupervisor').value = sorted[0].supervisor || '';
+      }
+    }
+    tripModalOverlay.classList.add('open');
+    document.getElementById('tripDate').focus();
+  }
+
+  function closeTripModal(){ tripModalOverlay.classList.remove('open'); }
+
+  function updateChipUI(){
+    Array.prototype.forEach.call(document.querySelectorAll('#roadTypeChips .chip'), function(chip){
+      chip.classList.toggle('selected', selectedRoadTypes.indexOf(chip.dataset.value) !== -1);
+    });
+  }
+
+  document.getElementById('roadTypeChips').addEventListener('click', function(e){
+    var chip = e.target.closest('.chip');
+    if(!chip) return;
+    var val = chip.dataset.value;
+    var idx = selectedRoadTypes.indexOf(val);
+    if(idx === -1) selectedRoadTypes.push(val); else selectedRoadTypes.splice(idx,1);
+    updateChipUI();
+  });
+
+  function updateComputedDuration(){
+    var start = document.getElementById('tripStart').value;
+    var end = document.getElementById('tripEnd').value;
+    var out = document.getElementById('computedDuration');
+    if(start && end){
+      var mins = minutesBetween(start, end);
+      out.textContent = 'Duration: ' + fmtDuration(mins);
+      // auto-suggest night driving if entirely outside 6am-8pm, only if user hasn't manually touched it this session
+      var sH = toMinutes(start), eH = toMinutes(end);
+      var looksNight = (sH >= 20*60 || sH < 6*60);
+      if(!tripForm.dataset.nightTouched){
+        document.getElementById('tripNight').checked = looksNight;
+      }
+    } else {
+      out.textContent = 'Duration: —';
+    }
+  }
+  document.getElementById('tripStart').addEventListener('change', updateComputedDuration);
+  document.getElementById('tripEnd').addEventListener('change', updateComputedDuration);
+  document.getElementById('tripNight').addEventListener('change', function(){ tripForm.dataset.nightTouched = '1'; });
+
+  document.getElementById('addTripBtn').addEventListener('click', function(){ openTripModal(null); });
+  document.getElementById('emptyAddBtn').addEventListener('click', function(){ openTripModal(null); });
+  document.getElementById('closeTripModal').addEventListener('click', closeTripModal);
+  document.getElementById('cancelTripBtn').addEventListener('click', closeTripModal);
+  tripModalOverlay.addEventListener('click', function(e){ if(e.target === tripModalOverlay) closeTripModal(); });
+
+  tripForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    var id = document.getElementById('tripId').value || uid();
+    var start = document.getElementById('tripStart').value;
+    var end = document.getElementById('tripEnd').value;
+    var trip = {
+      id: id,
+      date: document.getElementById('tripDate').value,
+      start: start,
+      end: end,
+      minutes: minutesBetween(start, end),
+      supervisor: document.getElementById('tripSupervisor').value.trim(),
+      night: document.getElementById('tripNight').checked,
+      weather: document.getElementById('tripWeather').value,
+      roadTypes: selectedRoadTypes.slice(),
+      notes: document.getElementById('tripNotes').value.trim()
+    };
+    var existingIdx = state.trips.findIndex(function(t){ return t.id === id; });
+    if(existingIdx !== -1) state.trips[existingIdx] = trip; else state.trips.push(trip);
+    tripForm.dataset.nightTouched = '';
+    saveTrips();
+    render();
+    closeTripModal();
+    showToast('Trip saved');
+  });
+
+  function deleteTrip(id){
+    if(!confirm('Delete this trip? This can\'t be undone.')) return;
+    state.trips = state.trips.filter(function(t){ return t.id !== id; });
+    saveTrips();
+    render();
+    showToast('Trip deleted');
+  }
+
+  // ---------- Settings modal ----------
+  var settingsModalOverlay = document.getElementById('settingsModalOverlay');
+  document.getElementById('settingsBtn').addEventListener('click', function(){
+    document.getElementById('goalTotal').value = state.settings.goalTotal;
+    document.getElementById('goalNight').value = state.settings.goalNight;
+    settingsModalOverlay.classList.add('open');
+  });
+  document.getElementById('closeSettingsModal').addEventListener('click', function(){ settingsModalOverlay.classList.remove('open'); });
+  document.getElementById('cancelSettingsBtn').addEventListener('click', function(){ settingsModalOverlay.classList.remove('open'); });
+  settingsModalOverlay.addEventListener('click', function(e){ if(e.target === settingsModalOverlay) settingsModalOverlay.classList.remove('open'); });
+
+  document.getElementById('settingsForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    state.settings.goalTotal = parseFloat(document.getElementById('goalTotal').value) || 50;
+    state.settings.goalNight = parseFloat(document.getElementById('goalNight').value) || 10;
+    saveSettings();
+    render();
+    settingsModalOverlay.classList.remove('open');
+    showToast('Goals updated');
+  });
+
+  // ---------- Init ----------
+  loadData();
+})();
+</script>
+
+</body>
+</html>
